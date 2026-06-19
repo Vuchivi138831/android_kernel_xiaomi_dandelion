@@ -1,0 +1,73 @@
+name: Build Redmi 9A KernelSU (Stable)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v4
+
+    - name: Install Build Essentials
+      run: |
+        sudo apt update
+        sudo apt install -y git bc bison flex libssl-dev make \
+        libc6-dev libncurses5-dev clang lld gcc-aarch64-linux-gnu curl \
+        build-essential wget zlib1g-dev libffi-dev libsqlite3-dev
+
+    # ===== Cache Python2 =====
+    - name: Cache Python2
+      uses: actions/cache@v4
+      with:
+        path: /opt/python2
+        key: python2-cache-v1
+
+    # ===== Setup Python2 =====
+    - name: Setup Python2
+      run: |
+        if [ ! -f /opt/python2/bin/python2.7 ]; then
+          echo "Building Python2..."
+          wget https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz
+          tar -xf Python-2.7.18.tgz
+          cd Python-2.7.18
+          ./configure --prefix=/opt/python2
+          make -j$(nproc)
+          sudo make install
+        else
+          echo "Using cached Python2"
+        fi
+
+        sudo ln -sf /opt/python2/bin/python2.7 /usr/bin/python
+        python --version
+
+    # ===== Compile =====
+    - name: Compile Kernel
+      run: |
+        export ARCH=arm64
+        export SUBARCH=arm64
+        export CC=clang
+        export LD=ld.lld
+        export CROSS_COMPILE=aarch64-linux-gnu-
+        export HOSTCFLAGS="-fcommon"
+        export LLVM=1
+        export LLVM_IAS=1
+
+        mkdir -p out
+
+        make O=out dandelion_defconfig
+        make O=out olddefconfig
+
+        make -j$(nproc --all) O=out \
+        HOSTCFLAGS="-fcommon" \
+        KCFLAGS="-w"
+
+    # ===== Upload =====
+    - name: Upload Kernel Image
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: Image-Redmi9A-KSU
+        path: out/arch/arm64/boot/Image
