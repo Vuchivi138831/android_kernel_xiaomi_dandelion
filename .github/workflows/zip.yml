@@ -3,13 +3,14 @@ name: Auto Unzip KernelSU
 on:
   push:
     paths:
-      - 'drivers/kernelsu.zip'
+      - 'drivers/kernelsu.zip' # Tự động chạy khi bạn upload file zip mới
+  workflow_dispatch: # Kích hoạt nút "Run workflow" để bấm chạy bằng tay
 
 jobs:
   unzip-file:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write # Cấp quyền ghi file vào repo
 
     steps:
       - name: Checkout mã nguồn
@@ -23,10 +24,10 @@ jobs:
           # Xóa thư mục kernelsu cũ nếu có để tránh lỗi ghi đè
           rm -rf kernelsu/ 
           
-          # Giải nén trực tiếp (file zip sẽ tự bung ra thành thư mục kernelsu/)
+          # Giải nén trực tiếp (file zip tự bung ra thành thư mục kernelsu/)
           unzip kernelsu.zip
           
-          # Xóa file zip gốc để dọn dẹp repo
+          # Xóa file zip gốc để dọn dẹp repo (Thêm dấu # vào đầu dòng dưới nếu muốn giữ lại file zip)
           rm kernelsu.zip 
 
       - name: Lưu và đẩy file đã giải nén lên Repo
@@ -36,4 +37,3 @@ jobs:
           git add .
           git commit -m "🤖 Tự động giải nén drivers/kernelsu.zip" || exit 0
           git push
-          
