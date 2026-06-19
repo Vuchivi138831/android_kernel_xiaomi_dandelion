@@ -1,0 +1,31 @@
+name: Remove Submodule and Clean
+
+on:
+  workflow_dispatch: # Để xuất hiện nút bấm chạy bằng tay
+
+jobs:
+  delete-submodule:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout mã nguồn
+        uses: actions/checkout@v4
+
+      - name: Xóa triệt để submodule kernelsu
+        run: |
+          # Di chuyển vào thư mục drivers
+          cd drivers
+          
+          # Lệnh xóa gitlink/submodule một cách ép buộc
+          git rm -f kernelsu || rm -rf kernelsu
+          
+      - name: Lưu thay đổi và đẩy lên Repo
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "🤖 Xóa bỏ kernelsu submodule lỗi" || exit 0
+          git push
+          
