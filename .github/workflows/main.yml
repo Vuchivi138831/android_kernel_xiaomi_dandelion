@@ -15,8 +15,9 @@ jobs:
       run: |
         sudo apt update
         sudo apt install -y git bc bison flex libssl-dev make \
-        libc6-dev libncurses5-dev clang lld gcc-aarch64-linux-gnu curl \
-        build-essential wget zlib1g-dev libffi-dev libsqlite3-dev zip
+        libc6-dev libncurses5-dev clang lld gcc-aarch64-linux-gnu \
+        gcc-arm-linux-gnueabi curl build-essential wget zlib1g-dev \
+        libffi-dev libsqlite3-dev zip
 
     # ===== Cache Python2 =====
     - name: Cache Python2
@@ -51,6 +52,7 @@ jobs:
         export CC=clang
         export LD=ld.lld
         export CROSS_COMPILE=aarch64-linux-gnu-
+        export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
         export HOSTCFLAGS="-fcommon"
         export LLVM=1
         export LLVM_IAS=1
