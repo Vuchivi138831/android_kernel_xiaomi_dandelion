@@ -1,0 +1,39 @@
+name: Auto Unzip KernelSU
+
+on:
+  push:
+    paths:
+      - 'drivers/kernelsu.zip'
+
+jobs:
+  unzip-file:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout mã nguồn
+        uses: actions/checkout@v4
+
+      - name: Giải nén file zip trong thư mục drivers
+        run: |
+          # Di chuyển vào thư mục drivers
+          cd drivers
+          
+          # Xóa thư mục kernelsu cũ nếu có để tránh lỗi ghi đè
+          rm -rf kernelsu/ 
+          
+          # Giải nén trực tiếp (file zip sẽ tự bung ra thành thư mục kernelsu/)
+          unzip kernelsu.zip
+          
+          # Xóa file zip gốc để dọn dẹp repo
+          rm kernelsu.zip 
+
+      - name: Lưu và đẩy file đã giải nén lên Repo
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "🤖 Tự động giải nén drivers/kernelsu.zip" || exit 0
+          git push
+          
