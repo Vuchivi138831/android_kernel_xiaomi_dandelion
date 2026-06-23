@@ -1,0 +1,128 @@
+name: Build Redmi 9A KernelSU (Stable)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v4
+
+    # ===== 1. CẤU HÌNH CACHE CHO CÁC GÓI APT (HỆ THỐNG) =====
+    - name: Cache APT Packages
+      uses: actions/cache@v4
+      with:
+        path: /var/cache/apt/archives
+        key: apt-cache-${{ runner.os }}-v1
+
+    # Đã loại bỏ clang và lld mặc định của Ubuntu để tránh xung đột
+    - name: Install Build Essentials
+      run: |
+        sudo apt update
+        sudo apt install -y git bc bison flex libssl-dev make \
+        libc6-dev libncurses5-dev gcc-aarch64-linux-gnu \
+        gcc-arm-linux-gnueabi curl build-essential wget zlib1g-dev \
+        libffi-dev libsqlite3-dev zip
+
+    # ===== 2. CẤU HÌNH CACHE CHO PYTHON2 (MÃ NGUỒN & THƯ MỤC CÀI ĐẶT) =====
+    - name: Cache Python2 Core
+      uses: actions/cache@v4
+      with:
+        path: |
+          /opt/python2
+          ${{ github.workspace }}/Python-2.7.18.tgz
+        key: python2-full-cache-v1
+
+    # ===== 3. THIẾT LẬP PYTHON2 (Bỏ qua bước biên dịch nếu đã có cache) =====
+    - name: Setup Python2
+      run: |
+        if [ ! -f /opt/python2/bin/python2.7 ]; then
+          echo "[+] Cache không tồn tại, bắt đầu tải và biên dịch Python2..."
+          if [ ! -f Python-2.7.18.tgz ]; then
+            wget https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz
+          fi
+          tar -xf Python-2.7.18.tgz
+          cd Python-2.7.18
+          ./configure --prefix=/opt/python2
+          make -j$(nproc)
+          sudo make install
+          cd ..
+        else
+          echo "[+] Đã tìm thấy Cache! Bỏ qua bước cài đặt Python2."
+        fi
+
+        # Tạo liên kết ảo để hệ thống nhận diện lệnh `python`
+        sudo ln -sf /opt/python2/bin/python2.7 /usr/bin/python
+        python --version
+
+    # ===== 3.5 TẢI VÀ THIẾT LẬP CLANG 9.0.3 =====
+    - name: Download and Setup Clang 9.0.3
+      run: |
+        mkdir -p ${{ github.workspace }}/clang
+        cd ${{ github.workspace }}/clang
+        # Tải bản Clang 9.0.3 chính thức từ llvm.org dành cho Linux x86_64
+        wget https://releases.llvm.org/9.0.3/clang+llvm-9.0.3-x86_64-linux-gnu-ubuntu-16.04.tar.xz
+        tar -xf clang+llvm-9.0.3-x86_64-linux-gnu-ubuntu-16.04.tar.xz --strip-components=1
+        echo "[+] Clang 9.0.3 đã được thiết lập thành công tại ${{ github.workspace }}/clang"
+
+    # ===== 4. BIÊN DỊCH KERNEL =====
+    - name: Compile Kernel
+      run: |
+        # Thêm Clang 9.0.3 vào biến PATH
+        export PATH="${{ github.workspace }}/clang/bin:$PATH"
+        
+        export ARCH=arm64
+        export SUBARCH=arm64
+        
+        # Cấu hình biên dịch bằng Clang 9
+        export CC=clang
+        export CLANG_TRIPLE=aarch64-linux-gnu-
+        
+        # Vẫn cần GCC làm Cross Compiler bổ trợ cho Clang ở các bản Kernel cũ
+        export CROSS_COMPILE=aarch64-linux-gnu-
+        export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+        
+        export HOSTCFLAGS="-fcommon"
+        
+        # Lưu ý: Kernel cũ biên dịch bằng Clang < 11 thường KHÔNG hỗ trợ "LLVM=1" và "LLVM_IAS=1"
+        # Thay vào đó, nó dùng trực tiếp CC=clang kết hợp với bộ Assembler/Linker của GCC (thông qua CROSS_COMPILE)
+        
+        export LOCALVERSION=""
+        mkdir -p out
+
+        make O=out dandelion_defconfig LOCALVERSION=""
+        make O=out olddefconfig LOCALVERSION=""
+
+        make -j$(nproc --all) O=out \
+        HOSTCFLAGS="-fcommon" \
+        KCFLAGS="-w" \
+        LOCALVERSION="" \
+        EXTRAVERSION=""
+
+    # ===== 5. ĐÓNG GÓI SẢN PHẨM (CHỈ CHỌN IMAGE.GZ) =====
+    - name: Pack Kernel Artifacts
+      if: success()
+      run: |
+        cd out/arch/arm64/boot/
+        if [ -f Image.gz ]; then
+          zip -r9 Kernel-Redmi9A-KSU.zip Image.gz
+        else
+          echo "Error: Image.gz not found!"
+          exit 1
+        fi
+
+    # ===== 6. ĐẨY FILE LÊN GIAO DIỆN WEB =====
+    - name: Upload Kernel Zip
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: Kernel-Redmi9A-KSU-Zip
+        path: out/arch/arm64/boot/Kernel-Redmi9A-KSU.zip
+        
