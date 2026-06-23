@@ -1,0 +1,42 @@
+name: Unzip KernelSU Source
+
+on:
+  # Cho phép bạn kích hoạt chạy script này thủ công từ giao diện Web của GitHub (Tab Actions)
+  workflow_dispatch:
+
+jobs:
+  unzip-file:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Bước 1: Kiểm tra và tải mã nguồn từ repo của bạn về máy ảo của GitHub
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Bước 2: Tiến hành giải nén file zip
+      - name: Unzip KernelSU-0.9.5.zip
+        run: |
+          # Di chuyển vào thư mục drivers
+          cd drivers
+          
+          # Giải nén file zip. Lệnh này sẽ bung thư mục "KernelSU-0.9.5/" ra ngay tại đây.
+          unzip KernelSU-0.9.5.zip
+          
+          # (Tùy chọn) Xóa file zip sau khi giải nén xong để tránh làm nặng repo của bạn
+          rm KernelSU-0.9.5.zip
+
+      # Bước 3: Commit và Push các file đã giải nén ngược trở lại GitHub của bạn
+      - name: Commit and Push changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          # Thêm tất cả các file vừa giải nén vào git
+          git add .
+          
+          # Kiểm tra xem có thay đổi nào không, nếu có thì mới commit để tránh lỗi workflow
+          git diff-index --quiet HEAD || git commit -m "Auto unzip KernelSU 0.9.5 source code"
+          
+          # Đẩy code lên lại nhánh hiện tại
+          git push
+          
