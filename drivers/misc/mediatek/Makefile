@@ -33,7 +33,7 @@ obj-$(CONFIG_MEDIATEK_SOLUTION) += sched/
 obj-$(CONFIG_MTK_SERIAL)	+= uart/
 obj-$(CONFIG_MTK_FREQ_HOPPING) += freqhopping/
 obj-$(CONFIG_MMC_MTK_SDIO) += mtk_sdio/
-obj-$(CONFIG_MTK_COMBO) += connectivity/
+obj-y += connectivity/
 obj-$(CONFIG_MTK_CONN_MD) += conn_md/
 obj-$(CONFIG_MTK_BTIF) += btif/
 obj-$(CONFIG_MTK_UNIFIED_DEBUG_INTERFACE) += udi/
@@ -79,7 +79,7 @@ obj-$(CONFIG_MTK_SECURITY_SW_SUPPORT) +=masp/
 obj-$(CONFIG_MTK_BLOCK_TAG) +=blocktag/
 obj-y += pidmap/
 obj-$(CONFIG_MTK_KEY_HINT) += keyhint/
-obj-$(CONFIG_MTK_IMGSENSOR) += imgsensor/src/
+obj-y += imgsensor/src/
 obj-$(CONFIG_MTK_CAM_CAL) += cam_cal/src/
 ifneq ($(wildcard $(srctree)/drivers/misc/mediatek/met_drv/),)
 obj-y += met_drv/
