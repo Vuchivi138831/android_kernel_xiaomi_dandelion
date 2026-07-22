@@ -1,0 +1,43 @@
+name: Setup Clang Toolchain
+
+on:
+  workflow_dispatch: # Cho phép kích hoạt thủ công từ giao diện GitHub
+
+# Cấp quyền ghi cho quy trình làm việc (cần thiết để git push)
+permissions:
+  contents: write
+
+jobs:
+  setup-clang:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout mã nguồn
+        uses: actions/checkout@v4
+
+      - name: Tải và giải nén Clang vào toolchains/clang
+        run: |
+          # Tạo thư mục toolchains/clang mới
+          mkdir -p toolchains/clang
+          cd toolchains/clang
+          
+          echo "Đang tải Clang..."
+          curl -sL "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android10-release/clang-r353983c.tar.gz" -o clang.tar.gz
+          
+          echo "Đang giải nén Clang..."
+          tar -xzf clang.tar.gz
+          rm clang.tar.gz
+
+      - name: Cam kết và Push lại vào repository
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          git add toolchains/clang
+          # Kiểm tra xem có thay đổi mới không trước khi commit
+          if git diff --staged --quiet; then
+            echo "Không có thay đổi nào để push."
+          else
+            git commit -m "ci: update prebuilt Clang toolchain in toolchains/clang"
+            git push
+          fi
