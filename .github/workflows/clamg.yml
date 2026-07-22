@@ -17,13 +17,20 @@ jobs:
 
       - name: Tải và giải nén Clang vào toolchains/clang
         run: |
-          # Tạo thư mục toolchains/clang mới
+          # Tạo thư mục toolchains/clang
           mkdir -p toolchains/clang
           cd toolchains/clang
           
-          echo "Đang tải Clang..."
-          curl -sL "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android10-release/clang-r353983c.tar.gz" -o clang.tar.gz
+          echo "Đang tải Clang (clang-r353983c)..."
+          # Sử dụng URL cố định bản android-10.0.0_r3 giúp tải ổn định không bị lỗi EOF
+          curl -sSLf --retry 5 "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/android-10.0.0_r3/clang-r353983c.tar.gz" -o clang.tar.gz
           
+          echo "Kiểm tra file trước khi giải nén..."
+          if ! tar -tzf clang.tar.gz > /dev/null 2>&1; then
+            echo "Lỗi: File tải về không trọn vẹn hoặc bị hỏng!"
+            exit 1
+          fi
+
           echo "Đang giải nén Clang..."
           tar -xzf clang.tar.gz
           rm clang.tar.gz
@@ -34,10 +41,11 @@ jobs:
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           
           git add toolchains/clang
+          
           # Kiểm tra xem có thay đổi mới không trước khi commit
           if git diff --staged --quiet; then
             echo "Không có thay đổi nào để push."
           else
-            git commit -m "ci: update prebuilt Clang toolchain in toolchains/clang"
+            git commit -m "ci: add prebuilt Clang r353983c toolchain in toolchains/clang"
             git push
           fi
