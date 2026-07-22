@@ -1,0 +1,32 @@
+name: Check Runner Specs
+
+on:
+  workflow_dispatch: # Cho phép bạn bấm nút chạy thủ công bất cứ lúc nào từ giao diện GitHub
+
+jobs:
+  check-hardware:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Kiểm tra thông số máy ảo
+        run: |
+          echo "=========================================="
+          echo "         THÔNG TIN CẤU HÌNH MÁY ẢO         "
+          echo "=========================================="
+          
+          echo -e "\n[1] SỐ NHÂN CPU KHẢ DỤNG:"
+          echo "Số core/vCPU: $(nproc)"
+          
+          echo -e "\n[2] CHI TIẾT CPU:"
+          lscpu | grep -E "Model name|CPU\(s\)|Thread\(s\) per core|Core\(s\) per socket"
+          
+          echo -e "\n[3] BỘ NHỚ RAM:"
+          free -h
+          
+          echo -e "\n[4] DUNG LƯỢNG Ổ CỨNG:"
+          df -h /
+          
+          echo -e "\n[5] THÔNG TIN HỆ ĐIỀU HÀNH:"
+          lsb_release -a 2>/dev/null || cat /etc/os-release | grep PRETTY_NAME
+          
+          echo "=========================================="
